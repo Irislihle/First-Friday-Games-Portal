@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-paper: #F7F9FA;
+  --color-navy: #091F2F;
+  --color-navy-soft: #142C3E;
+  --color-red: #ED1940;
+  --color-red-deep: #C41634;
+  --color-cyan: #00B8DD;
+  --color-orange: #F59B32;
+  --color-purple: #6B3FA1;
+  --color-muted: #5B6D7B;
+  --color-faint: #8B9AA6;
+  --color-line: #EDF1F4;
+}
+
+body {
+  @apply bg-paper text-navy font-sans antialiased;
+}
