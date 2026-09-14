@@ -4,12 +4,12 @@ export const rosters = [
         name: "Team Red",
         color: "#ff0000",
         players: [
-            "Mothibedi",
-            "Mokgadi",
-            "Thatego",
-            "Stanton",
-            "Elmarie",
-            "Mathapelo"
+            {id:"r1-1", name:"Mothibedi"},
+            {id:"r1-2", name:"Mokgadi"},
+            {id:"r1-3", name:"Thatego"},
+            {id:"r1-4", name:"Stanton"},
+            {id:"r1-5", name:"Elmarie"},
+            {id:"r1-6", name:"Mathapelo"}
         ],
         points:110,
         Division: "B"
@@ -19,12 +19,12 @@ export const rosters = [
         name: "Team White",
         color: "#a8b9c5",
         players: [
-            "JoeL",
-            "Confidence",
-            "Martinus",
-            "Bongiwe",
-            "Taki",
-            "Clifford"
+            {id:"r2-1", name:"JoeL"},
+            {id:"r2-2", name:"Confidence"},
+            {id:"r2-3", name:"Martinus"},
+            {id:"r2-4", name:"Bongiwe"},
+            {id:"r2-5", name:"Taki"},
+            {id:"r2-6", name:"Clifford"}
         ],
         points:142,
         Division: "A"
@@ -34,12 +34,12 @@ export const rosters = [
         name: "Team Black",
         color: "#000000",
         players: [
-            "Joel",
-            "Thabiso",
-            "Khaya",
-            "Khumo",
-            "Wiseman",
-            "Vincent"
+            {id:"r3-1", name:"Joel"},
+            {id:"r3-2", name:"Thabiso"},
+            {id:"r3-3", name:"Khaya"},
+            {id:"r3-4", name:"Khumo"},
+            {id:"r3-5", name:"Wiseman"},
+            {id:"r3-6", name:"Vincent"}
         ],
         points:95,
         Division: "C"

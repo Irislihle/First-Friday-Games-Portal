@@ -1,4 +1,5 @@
 //Central data fetching All components import from here
+import {supabase} from '../data/supabaseClient'
 import{
     stats as mockStats,
     chartData as mockChartData,
@@ -43,19 +44,57 @@ export async function getRosters(){
     return get('/api/rosters')
 }
 
+// CRUD USING SUPABASE
 export async function addPlayer(teamId, playerName){
  if (USE_MOCK){
-    console.log(`[mock] would add "${playerName}" to team ${teamId}`)
-    return {ok:true}
+    return {
+        id:`temp-${Date.now()}-${Math.random().toString(36).slice(2,9)}`,
+        name:playerName }
  }
-const res = await fetch(`${BASE_URL}/api/teams/${teamId}/players`,{
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body:JSON.stringify({name: playerName}),
-})
-   if(!res.ok) throw new Error('Failed to add player')
-    return res.json
+
+ const {data, error} = await supabase
+    .from('players')
+    .insert({team_id: teamId, name: playerName})
+    .select()
+    .single()
+
+    if(error) throw error
+    return data
 }
+
+export async function updatePlayer(teamId, playerId, newName){
+    if(USE_MOCK){
+        return {id: playerId, name: newName}
+    }
+    const {data, error} = await supabase
+        .from('players')
+        .update({name: newName})
+        .eq('id', playerId)
+        .eq('team_id', teamId)
+        .select()
+        .single()
+
+    if(error) throw error
+    return data
+}
+
+export async function deletePlayer(teamId, playerId){
+    if(USE_MOCK){
+        return {id: playerId}
+    }
+
+    const {error} = await supabase
+        .from('players')
+        .delete()
+        .eq('id', playerId)
+        .eq(team_id, teamId)
+
+    if(error) throw error
+    return {id:playerId}
+
+}
+
+//LIVE GAME
 
 export async function addPoints(teamName, points){
    if(USE_MOCK){
@@ -63,13 +102,13 @@ export async function addPoints(teamName, points){
     return {ok: true}
    }
 
-   const res = await fetch(`${BASE_URL}/api/live-game/points`,
-    {method:'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({teamName, points})
-     }
-   )
+   const {data, error} = await supabase
+       .from('live_game_scores')
+       .insert({team_name: teamName, points})
+       .select()
+       .single()
 
-   if(!res.ok) throw new error('Failed to add points')
-    return res.json()
+       if(error) throw error 
+       return data
+ 
 }

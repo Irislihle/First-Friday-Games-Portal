@@ -1,6 +1,6 @@
 import RosterCard from './RosterCard.jsx'
 
-export default function RosterGrid({rosters}){
+export default function RosterGrid({rosters, canManage = false}){
     return(
         <div>
           <div className="mt-9 mb-3.5 flex items-center gap-2.5 ">
@@ -8,9 +8,9 @@ export default function RosterGrid({rosters}){
             <div className="flex-1 h-px bg-line" />
           </div>
 
-          <div className="grid grid-cols-1 sm:gap-cols-2 lg:grid-cols-3 gap-4 ">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ">
             {rosters.map((team) => (
-                <RosterCard key={team.id} team={team}/>
+                <RosterCard key={team.id} team={team} canManage={canManage}/>
             ))}
           </div>
 

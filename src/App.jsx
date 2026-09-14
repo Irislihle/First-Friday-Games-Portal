@@ -7,11 +7,12 @@ import Leaderboard from './components/Leaderboard'
 import LiveGame from './components/LiveGame';
 import RosterGrid from './components/RosterGrid';
 import {getStats,getChartData,getLeaderboard,getLiveGame,getRosters} from './services/api'
-import { Wind } from 'lucide-react';
+import { Wind } from 'lucide-react'
+import {supabase} from './data/supabaseClient'
 
 
 export default function App() {
-
+    console.log(supabase)
    //State variables - store data from API
  const [stats, setStats] = useState(null)
  const [chartData, setChartData] = useState([])
@@ -54,7 +55,7 @@ export default function App() {
    return (
         <div className="min-h-screen bg-paper">
           <Header onLogout={handleLogout}/>
-
+           
           <div className='max-w-[1200px] mx-auto px-8 py-7 pb-16'>
             <div className='text-[11px] tracking-[0.14em] uppercase text-faint 
             font-mono mb-1.5'>
