@@ -8,14 +8,14 @@ import{
     rosters as mockRosters
 } from '../data/mockData'
 
-const USE_MOCK = true
+const USE_MOCK = 'true'
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 //fetch function
 async function get(path){
     const res = await fetch(`${BASE_URL}${path}`)
-    if (!res.ok) throw new error(`API error ${res.status} on ${path}`)
-        return res.json
+    if (!res.ok) throw new Error(`API error ${res.status} on ${path}`)
+        return res.json()
 }
 
 //Fetching the mock data

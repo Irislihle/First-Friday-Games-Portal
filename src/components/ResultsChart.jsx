@@ -47,13 +47,13 @@ export default function ResultsChart({ data }) {
           <XAxis
             dataKey="night"
             tick={{ fontFamily: 'JetBrains Mono', fontSize: 11, fill: '#8B9AA6' }}
-            axisLine={false}
-            tickLine={false}
+            axisLine={true}
+            tickLine={true}
           />
           <YAxis
             domain={[0, 200]}
             tick={{ fontFamily: 'JetBrains Mono', fontSize: 11, fill: '#8B9AA6' }}
-            axisLine={false}
+            axisLine={true}
             tickLine={false}
           />
           <Tooltip

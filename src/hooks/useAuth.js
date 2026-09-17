@@ -11,7 +11,7 @@ export function useAuth(){
 
     async function loadProfile(userId){
         const {data, error} = await supabase
-        .from('profile')
+        .from('profiles')
         .select('role')
         .eq('id', userId)
         .single()
@@ -31,7 +31,8 @@ export function useAuth(){
             } = await supabase.auth.getSession()
 
             if (initialSession?.user){
-                await loadingProfile(initialSession.user.id)
+                setSession(initialSession)
+                await loadProfile(initialSession.user.id)
             }else{
                 setLoading(false)
             }
@@ -41,6 +42,7 @@ export function useAuth(){
     const {data: listener} = supabase.auth.onAuthStateChange(
         (_event, newSession) => {
             if(newSession?.user){
+                setSession(newSession)
                 loadProfile(newSession.user.id)
             }else{
                 setRole(null)
