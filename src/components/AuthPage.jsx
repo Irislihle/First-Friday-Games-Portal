@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../data/supabaseClient'
 
+
 const HIGH_SCORES = [
-  { rank: 1, name: 'Team Red', points: 260 },
-  { rank: 2, name: 'Team Black', points: 249 },
-  { rank: 3, name: 'Team White', points: 246 },
+  { rank: 1, name: 'Team White', points: 253 },
+  { rank: 2, name: 'Team Red', points: 225 },
+  { rank: 3, name: 'Team Black', points: 223 },
 ]
 
 // 'signin' | 'signup'|'forgot'
@@ -66,7 +67,7 @@ export default function AuthPage() {
     setSubmitting(true)
     try {
       if (isSignup) {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { name: name.trim() } },
@@ -94,23 +95,23 @@ export default function AuthPage() {
   const heading =  isForgot
   ?'PASSWORD RECOVERY'
   :isSignup
-  ?'MEW PLAYER SETUP'
+  ?'NEW PLAYER SETUP'
   : 'INSERT CREDENTIALS TO CONTINUE'
 
   return (
-   <div className='min-h-screen flex items-center justify-center bg-[#1a1a18] px-4 py-1 0'>
+   <div className='min-h-screen flex items-center justify-center bg-[#1a1a18] px-4 py-10'>
 
     <div className='w-full max-w-[420px]'>
-    <div className='bg-[#2a2a28] rounded-2xl p-3.5 shadow-[insert_0_1px_0_rgba(255,255,255,0.06)]s'>
+    <div className='bg-[#2a2a28] rounded-2xl p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]s'>
       <div className='relative bg-black rounded-md px-6 py-7 font-mono overflow-hidden'>
         <div
-         className='absolute insert-0 pointer-events-none'
+         className='absolute inset-0 pointer-events-none'
         style={{
-          backgroundImage:'repeating-linear-gradient(0deg, rgba(0,184,221,0.05) 0px, rgba(0.184,221,0.05) 1px, transparent 1px, transparent 3px)',}}
+          backgroundImage:'repeating-linear-gradient(0deg, rgba(0,184,221,0.05) 0px, rgba(0,184,221,0.05) 1px, transparent 1px, transparent 3px)',}}
         
         />
          <div className='relative'>
-          <div className='text-center text-cyan text-[20px] font-medium tracking-[0.1 8em] mb-1'>
+          <div className='text-center text-cyan text-[20px] font-medium tracking-[0.18em] mb-1'>
             F F G P
             </div> 
             <div className='text-center text-red text-[11px] tracking-[0.5em] mb-6'>
@@ -234,7 +235,7 @@ export default function AuthPage() {
 {isSignup && (
   <div>
    <label htmlFor='confirmPassword'
-   className='block text-[#4a6b78] text-[10px] tracking-[0.08em] md-1'>
+   className='block text-[#4a6b78] text-[10px] tracking-[0.08em] mb-1'>
     CONFIRM PASSWORD
    </label>
    <input

@@ -13,7 +13,7 @@ function getFormattedDate() {
   return `${weekday} · ${day} ${month} ${year}`
 }
 
-export default function Header({ userName = 'Iris M.', onLogout }) {
+export default function Header({ userName = 'Player', onLogout }) {
   const date = getFormattedDate()
   const initials = userName
     .split(' ')

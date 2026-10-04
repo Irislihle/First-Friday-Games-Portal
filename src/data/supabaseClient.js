@@ -5,7 +5,7 @@ const supabasePublishableKey = import.meta.env.VITE_APP_PUBLISHABLE_KEY
 
 if(!supabaseUrl || !supabasePublishableKey){
     throw new Error(
-            'Missing Supabase env vars. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to .env.local'
+            'Missing Supabase env vars. Add VITE_APP_SUPABASE_URL and VITE_APP_PUBLISHABLE_KEY to .env.local'
     )
 }
 

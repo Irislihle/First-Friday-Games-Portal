@@ -20,6 +20,7 @@ export function useAuth(){
        if (!error && data){
         setRole(data.role)
        } else {
+        console.warn('[useAuth] profile load failed:', error)
         setRole('player')
        }
         setLoading(false)
@@ -41,8 +42,11 @@ export function useAuth(){
 
     const {data: listener} = supabase.auth.onAuthStateChange(
         (_event, newSession) => {
+            if(!mounted) return
+             setSession(newSession)
+
             if(newSession?.user){
-                setSession(newSession)
+                setLoading(true)
                 loadProfile(newSession.user.id)
             }else{
                 setRole(null)

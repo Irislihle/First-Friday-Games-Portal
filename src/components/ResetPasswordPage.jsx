@@ -2,8 +2,8 @@ import {useState, useEffect} from 'react'
 import{Eye, EyeOff} from 'lucide-react'
 import { supabase } from '../data/supabaseClient'   
 
-export default function ResetPasswordPage({oneDone = () => {} }){
-    const [password, setPassword] = useState(' ')
+export default function ResetPasswordPage({onDone = () => {} }){
+    const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [submitting, setSubmitting] = useState(false)
@@ -25,7 +25,7 @@ useEffect(() =>{
 
 async function handleSubmit(e){
     e.preventDefault()
-    setError(' ')
+    setError('')
 
     if(password !== confirmPassword){
         setError('Codes do not match.')

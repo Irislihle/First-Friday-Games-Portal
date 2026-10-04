@@ -11,8 +11,8 @@ import {
 
 const SERIES = [
   { key: 'Team Red', color: '#ED1940' },
-  { key: 'Team White', color: '#5D3F99' },
-  { key: 'Team Black', color: '#00B8DD' },
+  { key: 'Team White', color: '#85828d' },
+  { key: 'Team Black', color: '#04090a' },
 ]
 
 function CustomTooltip({ active, payload, label }) {
@@ -37,7 +37,7 @@ export default function ResultsChart({ data }) {
   return (
     <div className="bg-white border border-line rounded-card shadow-card p-5">
       <div className="flex items-baseline justify-between mb-4">
-        <h2 className="font-bold text-[15px]">Team results by night</h2>
+        <h2 className="font-bold text-[15px]">Team results </h2>
         <div className="text-[11px] font-mono text-faint">FFG 1&ndash;6</div>
       </div>
 
@@ -45,13 +45,12 @@ export default function ResultsChart({ data }) {
         <BarChart data={data} barGap={4}>
           <CartesianGrid vertical={false} stroke="#EDF1F4" />
           <XAxis
-            dataKey="night"
+            dataKey="season"
             tick={{ fontFamily: 'JetBrains Mono', fontSize: 11, fill: '#8B9AA6' }}
             axisLine={true}
             tickLine={true}
           />
           <YAxis
-            domain={[0, 200]}
             tick={{ fontFamily: 'JetBrains Mono', fontSize: 11, fill: '#8B9AA6' }}
             axisLine={true}
             tickLine={false}

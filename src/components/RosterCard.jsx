@@ -9,7 +9,7 @@ export default function RosterCard({team, canManage = false}){
        const [players, setPlayers] = useState(team.players)
        const [adding, setAdding] = useState(false)
        const [modalOpen, setModalOpen] = useState(false)
-       const [name, setName] = useState(' ')
+       const [name, setName] = useState('')
 
        const [editingPlayer, setEditingPlayer] = useState(null)
        const [editName, setEditName] = useState('')
@@ -18,8 +18,8 @@ export default function RosterCard({team, canManage = false}){
        const [deletingId, setDeletingId] = useState(null)
 
        useEffect(() => {
-         setPlayers(team.players)
-       }, [team.players])
+         setPlayers(team.players ?? [])
+       }, [team.id])
 
        async function handleSubmit(e){
          e.preventDefault()
@@ -32,7 +32,7 @@ export default function RosterCard({team, canManage = false}){
             : {
                id:
                typeof crypto !== 'undefined' && crypto.randomUUID
-               ? crypto.randomUUID
+               ? crypto.randomUUID()
                : `temp-${Date.now()}-${Math.random().toString(36).slice(2,9)}`,
                name: name.trim(),
             }
