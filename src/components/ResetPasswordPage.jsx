@@ -76,7 +76,7 @@ async function handleSubmit(e){
                 <span className="inline-block w-[7px] h-[13px] bg-cyan ml-1 align-middle animate-pulse" />
               </div>
 
-              {/* CHANGED: brief loading state while we verify the recovery session */}
+              
               {checkingSession ? (
                 <div className="text-[#5f7d8c] text-[12px]">VERIFYING LINK...</div>
               ) : done ? (
@@ -136,7 +136,6 @@ async function handleSubmit(e){
                     </div>
                   )}
 
-                  {/* CHANGED: disable submit when there's no valid recovery session */}
                   <button
                     type="submit" disabled={submitting || !!error && error.includes('expired')}
                     className="mt-2 bg-red hover:bg-red-deep disabled:opacity-50 text-black font-medium text-[12px]

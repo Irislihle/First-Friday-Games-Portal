@@ -1,89 +1,101 @@
-import {useState, useEffect} from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
-import {addPlayer, updatePlayer, deletePlayer} from '../services/api'
-import {Pencil, Trash2} from 'lucide-react'
+import { addPlayer, updatePlayer, deletePlayer, deleteTeam } from '../services/api'
+import { Pencil, Trash2 } from 'lucide-react'
 
+export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
+  const [players, setPlayers] = useState(team.players ?? [])
+  const [deletingTeam, setDeletingTeam] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [name, setName] = useState('')
 
-export default function RosterCard({team, canManage = false}){
+  const [editingPlayer, setEditingPlayer] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
-       const [players, setPlayers] = useState(team.players)
-       const [adding, setAdding] = useState(false)
-       const [modalOpen, setModalOpen] = useState(false)
-       const [name, setName] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
-       const [editingPlayer, setEditingPlayer] = useState(null)
-       const [editName, setEditName] = useState('')
-       const [savingEdit, setSavingEdit] = useState(false)
+  useEffect(() => {
+    setPlayers(team.players ?? [])
+  }, [team.id, team.players])
 
-       const [deletingId, setDeletingId] = useState(null)
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setAdding(true)
+    try {
+      const created = await addPlayer(team.id, name.trim())
+      const newPlayer = created?.id
+        ? created
+        : {
+            id:
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            name: name.trim(),
+          }
+      setPlayers((prev) => [...prev, newPlayer])
+      setName('')
+      setModalOpen(false)
+    } finally {
+      setAdding(false)
+    }
+  }
 
-       useEffect(() => {
-         setPlayers(team.players ?? [])
-       }, [team.id])
+  function openEdit(player) {
+    setEditingPlayer(player)
+    setEditName(player.name)
+  }
 
-       async function handleSubmit(e){
-         e.preventDefault()
-         if(!name.trim()) return
-         setAdding(true)
-         try{
-            const created = await addPlayer(team.id, name.trim())
-            const newPlayer = created?.id
-            ? created
-            : {
-               id:
-               typeof crypto !== 'undefined' && crypto.randomUUID
-               ? crypto.randomUUID()
-               : `temp-${Date.now()}-${Math.random().toString(36).slice(2,9)}`,
-               name: name.trim(),
-            }
-            setPlayers((prev) => [...prev, newPlayer])
-            setName('')
-            setModalOpen(false)
-         }finally{
-            setAdding(false)
-         }
-       }
+  async function handleEditSubmit(e) {
+    e.preventDefault()
+    if (!editName.trim() || !editingPlayer) return
+    setSavingEdit(true)
+    try {
+      await updatePlayer(team.id, editingPlayer.id, editName.trim())
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === editingPlayer.id ? { ...p, name: editName.trim() } : p
+        )
+      )
+      setEditingPlayer(null)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
-       function openEdit(player){
-         setEditingPlayer(player)
-         setEditName(player.name)
-       }
+  async function handleDelete(player) {
+    const confirmed = window.confirm(`Remove ${player.name} from ${team.name}?`)
+    if (!confirmed) return
+    setDeletingId(player.id)
+    try {
+      await deletePlayer(team.id, player.id)
+      setPlayers((prev) => prev.filter((p) => p.id !== player.id))
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
-       async function handleEditSubmit(e){
-         e.preventDefault()
-         if(!editName.trim() || !editingPlayer) return
-         setSavingEdit(true)
-       
-       try{
-         await updatePlayer(team.id, editingPlayer.id, editName.trim())
-         setPlayers((prev) =>
-         prev.map((p) =>
-          p.id === editingPlayer.id ? {...p, name: editName.trim()} : p 
-          )
-         )
-         setEditingPlayer(null)
-       }finally{
-         setSavingEdit(false)
-       }
-      }
+  async function handleDeleteTeam() {
+    const confirmed = window.confirm(
+      `Delete ${team.name} entirely? This removes all its players and its past results from the season standings — cannot be undone.`
+    )
+    if (!confirmed) return
 
-      async function handleDelete(player){
-         const confirmed = window.confirm(
-            `Remove ${player.name} from ${team.name}?`
-         )
-         if(!confirmed) return
-         setDeletingId(player.id)
-         try{
-            await deletePlayer(team.id, player.id)
-            setPlayers((prev) => prev.filter((p) => p.id !== player.id))
-         }finally{
-            setDeletingId(null)
-         }
-      }
+    setDeletingTeam(true)
+    try {
+      await deleteTeam(team.id)
+      onTeamDeleted?.(team.id)
+    } catch (err) {
+      console.error('deleteTeam failed:', err)
+      alert('Could not delete the team — check the console for details.')
+      setDeletingTeam(false)
+    }
+  }
 
-
-    return(
-     <div className="bg-white border border-line rounded-md shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-lg">
+  return (
+    <div className="bg-white border border-line rounded-md shadow-card overflow-hidden transition-shadow duration-200 hover:shadow-lg">
       <div className="h-1" style={{ backgroundColor: team.color }} />
 
       <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-3 border-b border-line">
@@ -92,17 +104,27 @@ export default function RosterCard({team, canManage = false}){
           style={{ backgroundColor: team.color }}
         />
         <div className="font-bold text-[14px]">{team.name}</div>
-        <div className="ml-auto font-mono text-[11px] text-faint">
-          {players.length} players
+        <div className="ml-auto flex items-center gap-2">
+          <span className="font-mono text-[11px] text-faint">
+            {players.length} players
+          </span>
+          {canManage && (
+            <button
+              onClick={handleDeleteTeam}
+              disabled={deletingTeam}
+              aria-label={`Delete ${team.name}`}
+              title="Delete team"
+              className="text-faint hover:text-red p-1 rounded transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
 
       <ul className="px-4 py-3 flex flex-col gap-2.5">
         {players.map((p, i) => (
-          <li
-            key={p.id}
-            className="flex items-center gap-2.5 text-[13px] group"
-          >
+          <li key={p.id} className="flex items-center gap-2.5 text-[13px] group">
             <span className="w-[18px] h-[18px] rounded bg-paper text-[#5B6D7B] font-mono text-[10px] font-bold flex items-center justify-center flex-shrink-0">
               {i + 1}
             </span>
@@ -210,5 +232,5 @@ export default function RosterCard({team, canManage = false}){
         </form>
       </Modal>
     </div>
-    )
+  )
 }

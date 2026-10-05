@@ -4,9 +4,9 @@ import { supabase } from '../data/supabaseClient'
 
 
 const HIGH_SCORES = [
-  { rank: 1, name: 'Team White', points: 253 },
-  { rank: 2, name: 'Team Red', points: 225 },
-  { rank: 3, name: 'Team Black', points: 223 },
+  { rank: 1, name: 'Team White', points: 86 },
+  { rank: 2, name: 'Team Black', points: 83 },
+  { rank: 3, name: 'Team Red', points: 69 },
 ]
 
 // 'signin' | 'signup'|'forgot'

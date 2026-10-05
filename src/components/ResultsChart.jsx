@@ -9,11 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-const SERIES = [
-  { key: 'Team Red', color: '#ED1940' },
-  { key: 'Team White', color: '#85828d' },
-  { key: 'Team Black', color: '#04090a' },
-]
+
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -33,7 +29,20 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-export default function ResultsChart({ data }) {
+export default function ResultsChart({ data, teams = [] }) {
+
+  const SERIES = teams.map((t) => ({ key: t.name, color: t.color })) 
+  
+   {SERIES.map((s) => (
+  <Bar
+    key={s.key}
+    dataKey={s.key}
+    fill={s.color}
+    radius={[4, 4, 0, 0]}
+    maxBarSize={16}
+  />
+))}
+      
   return (
     <div className="bg-white border border-line rounded-card shadow-card p-5">
       <div className="flex items-baseline justify-between mb-4">

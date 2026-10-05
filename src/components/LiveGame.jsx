@@ -1,38 +1,37 @@
-import {useState, useEffect} from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
-import {setTeamPoints, createLiveGame, endLiveGame} from '../services/api'
-import {Pencil, Plus} from 'lucide-react'
+import { setTeamPoints, createLiveGame, endLiveGame, deleteLiveGame } from '../services/api'
+import { Pencil, Plus } from 'lucide-react'
 
+export default function LiveGame({
+  game,
+  teams: rosterTeams = [],
+  canManage = false,
+  onGameCreated,
+}) {
+  const [liveGame, setLiveGame] = useState(
+    game ? { ...game, teams: game.teams ?? [] } : null
+  )
+  const [saving, setSaving] = useState(false)
+  const [modalTeam, setModalTeam] = useState(null)
+  const [pointsInput, setPointsInput] = useState('1')
+  const [isEditing, setIsEditing] = useState(false)
+  const [scoreMode, setScoreMode] = useState('add')
+  const [ending, setEnding] = useState(false)
 
-export default function LiveGame({game,
-   teams: rosterTeams = [],
-   canManage = false,
-   onGameCreated
-  }){
-  
+  const [createOpen, setCreateOpen] = useState(false)
+  const [newGameName, setNewGameName] = useState('')
+  const [selectedTeamIds, setSelectedTeamIds] = useState([])
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
-    const [liveGame,setLiveGame] = useState(game
-      ? {...game, teams: game.teams ?? []}: null)
-    const [saving, setSaving] = useState(false)
-    const [modalTeam, setModalTeam] = useState(null)
-    const [pointsInput, setPointsInput] = useState('1')
-    const [isEditing, setIsEditing] = useState(false)
-    const [scoreMode, setScoreMode] = useState('add')
-    const [ending, setEnding] = useState(false)
-   
-    const [createOpen, setCreateOpen] = useState(false)
-    const [newGameName, setNewGameName] = useState('')
-    const [selectedTeamIds, setSelectedTeamIds] = useState([])
-    const [creating, setCreating] = useState(false)
-    const [createError, setCreateError] = useState('')
-   
-useEffect(() => {
-    setLiveGame(game ?{...game, teams: game.teams ?? []}: null)
+  useEffect(() => {
+    setLiveGame(game ? { ...game, teams: game.teams ?? [] } : null)
   }, [game])
 
   function openCreateModal() {
     setNewGameName('')
-    // Default: every roster team is pre-selected.
     setSelectedTeamIds(rosterTeams.map((t) => t.id))
     setCreateError('')
     setCreateOpen(true)
@@ -52,12 +51,10 @@ useEffect(() => {
     setCreateError('')
     try {
       const chosenTeams = rosterTeams.filter((t) => selectedTeamIds.includes(t.id))
-      // CHANGED: server owns the initial 0-point state — we don't fake it here.
       const created = await createLiveGame(newGameName.trim(), chosenTeams)
       setLiveGame(created)
-      setIsEditing(true) // drop straight into edit mode so "Update" buttons appear
+      setIsEditing(true)
       setCreateOpen(false)
-      // CHANGED: tell the parent so useDashboardData refetches and stays in sync.
       onGameCreated?.()
     } catch (err) {
       setCreateError(err.message || 'Could not create game.')
@@ -65,8 +62,6 @@ useEffect(() => {
       setCreating(false)
     }
   }
-
-  
 
   function openScoreModal(team) {
     setModalTeam(team)
@@ -76,9 +71,13 @@ useEffect(() => {
 
   function switchScoreMode(mode) {
     setScoreMode(mode)
-    // CHANGED: in "set" mode, prefill with the team's current score so the
-    // admin can tweak rather than retype. In "add" mode, reset to 1.
-    setPointsInput(mode === 'set' && modalTeam ? String(modalTeam.points) : '1')
+    if (mode === 'set' && modalTeam) {
+      // Read current points from live state, not the stale modal snapshot.
+      const current = liveGame?.teams.find((t) => t.id === modalTeam.id)
+      setPointsInput(String(current?.points ?? modalTeam.points ?? 0))
+    } else {
+      setPointsInput('1')
+    }
   }
 
   async function handleScoreSubmit(e) {
@@ -88,14 +87,12 @@ useEffect(() => {
     const value = Number(pointsInput)
     if (Number.isNaN(value)) return
 
-    // CHANGED: compute the final total here; the API just writes it.
     const nextPoints = scoreMode === 'add' ? modalTeam.points + value : value
     if (nextPoints < 0) return
 
     setSaving(true)
     try {
       await setTeamPoints(liveGame.id, modalTeam.id, nextPoints)
-      // Optimistic local update so the UI reacts immediately.
       setLiveGame((prev) => ({
         ...prev,
         teams: prev.teams.map((t) =>
@@ -111,25 +108,46 @@ useEffect(() => {
   }
 
   async function handleEndGame() {
-  if (!liveGame) return
-  const confirmed = window.confirm(
-    `End "${liveGame.name}" and save these scores to the season standings? This can't be undone.`
-  )
-  if (!confirmed) return
+    if (!liveGame) return
+    const confirmed = window.confirm(
+      `End "${liveGame.name}" and save these scores to the season standings? This can't be undone.`
+    )
+    if (!confirmed) return
 
-  setEnding(true)
-  try {
-    await endLiveGame(liveGame.id, liveGame.teams)
-    setLiveGame(null)
-    setIsEditing(false)
-    onGameCreated?.() // reused as a general "something changed, please refetch" signal
-  } catch (err) {
-    console.error('endLiveGame failed:', err)
-    alert('Could not end the game — check the console for details.')
-  } finally {
-    setEnding(false)
+    setEnding(true)
+    try {
+      await endLiveGame(liveGame.id, liveGame.teams)
+      setLiveGame(null)
+      setIsEditing(false)
+      onGameCreated?.()
+    } catch (err) {
+      console.error('endLiveGame failed:', err)
+      alert('Could not end the game — check the console for details.')
+    } finally {
+      setEnding(false)
+    }
   }
-}
+
+  async function handleDeleteGame() {
+    if (!liveGame) return
+    const confirmed = window.confirm(
+      `Delete "${liveGame.name}" entirely? This discards all current scores — nothing gets saved to the season standings. Use "End game" instead if you want to keep these scores.`
+    )
+    if (!confirmed) return
+
+    setDeleting(true)
+    try {
+      await deleteLiveGame(liveGame.id)
+      setLiveGame(null)
+      setIsEditing(false)
+      onGameCreated?.()
+    } catch (err) {
+      console.error('deleteLiveGame failed:', err)
+      alert('Could not delete the game — check the console for details.')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="mt-5 bg-[#091f2f] rounded-md shadow-card p-5 text-white">
@@ -142,9 +160,9 @@ useEffect(() => {
               Live
             </span>
           )}
+
           {canManage && (
             <>
-              {/* CHANGED: always-visible "new game" button for admins. */}
               <button
                 onClick={openCreateModal}
                 aria-label="Start a new game"
@@ -153,38 +171,47 @@ useEffect(() => {
               >
                 <Plus size={14} />
               </button>
-             
-          
-                {liveGame && (
-  <>
-    <button
-      onClick={() => setIsEditing((prev) => !prev)}
-      aria-label="Edit current game"
-      aria-pressed={isEditing}
-      className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
-        isEditing ? 'bg-cyan/20 text-cyan' : 'text-[#9FB2C0] hover:bg-navy-soft hover:text-white'
-      }`}
-    >
-      <Pencil size={14} />
-    </button>
-    <button
-      onClick={handleEndGame}
-      disabled={ending}
-      aria-label="End current game"
-      title="End current game and save results"
-      className="text-[11px] font-bold text-[#9FB2C0] hover:text-red disabled:opacity-50 transition-colors px-1.5"
-    >
-      {ending ? 'Ending...' : 'End game'}
-    </button>
-  </>
-)}
 
+              {liveGame && (
+                <>
+                  <button
+                    onClick={() => setIsEditing((prev) => !prev)}
+                    aria-label="Edit current game"
+                    aria-pressed={isEditing}
+                    title="Edit current game"
+                    className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+                      isEditing
+                        ? 'bg-cyan/20 text-cyan'
+                        : 'text-[#9FB2C0] hover:bg-navy-soft hover:text-white'
+                    }`}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={handleEndGame}
+                    disabled={ending}
+                    aria-label="End current game"
+                    title="End current game and save results"
+                    className="text-[11px] font-bold text-[#9FB2C0] hover:text-red disabled:opacity-50 transition-colors px-1.5"
+                  >
+                    {ending ? 'Ending...' : 'End game'}
+                  </button>
+                  <button
+                    onClick={handleDeleteGame}
+                    disabled={deleting}
+                    aria-label="Delete current game"
+                    title="Delete current game without saving results"
+                    className="text-[11px] font-bold text-[#9FB2C0] hover:text-red disabled:opacity-50 transition-colors px-1.5"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* CHANGED: empty state with a big primary CTA for admins. */}
       {!liveGame ? (
         <div className="text-center py-6">
           <p className="text-[13px] text-[#9FB2C0] mb-3">No live game right now.</p>
@@ -214,8 +241,7 @@ useEffect(() => {
                   <span className="font-mono font-bold text-cyan text-[14px]">
                     {t.points}
                   </span>
-                  {/* CHANGED: label is "Update" (opens the mode-picker modal)
-                      instead of "+ Points" (which used to add blindly). */}
+
                   {canManage && isEditing && (
                     <button
                       onClick={() => openScoreModal(t)}
@@ -228,20 +254,16 @@ useEffect(() => {
                 </span>
               </div>
             ))}
+
             {(liveGame.teams ?? []).length === 0 && (
-              <div className='text-[12.5px] text-[#9FB2C0] py-2'>
-                 No teams in this game yet
+              <div className="text-[12.5px] text-[#9FB2C0] py-2">
+                No teams in this game yet
               </div>
             )}
           </div>
         </>
       )}
 
-      {/* ============================================================
-          CHANGED: Add / set score modal. Two tabs let the admin either
-          add points to the current total or overwrite it with an exact
-          number, all in one form.
-          ============================================================ */}
       {canManage && (
         <Modal
           isOpen={!!modalTeam}
@@ -295,17 +317,17 @@ useEffect(() => {
                 disabled={saving}
                 className="bg-red hover:bg-red-deep disabled:opacity-60 text-white text-[12.5px] font-bold rounded px-4 py-2 transition-colors"
               >
-                {saving ? 'Saving...' : scoreMode === 'add' ? 'Add points' : 'Set score'}
+                {saving
+                  ? 'Saving...'
+                  : scoreMode === 'add'
+                  ? 'Add points'
+                  : 'Set score'}
               </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* ============================================================
-          CHANGED: Create game modal. Name + team checklist. All roster
-          teams start pre-selected; uncheck any that aren't playing.
-          ============================================================ */}
       {canManage && (
         <Modal
           isOpen={createOpen}

@@ -1,5 +1,5 @@
 
-/*import { isCSSRequest } from 'vite'*/
+
 import {supabase} from '../data/supabaseClient'
 
 
@@ -194,7 +194,7 @@ export async function createTeam(name, color) {
 
   return {
     ...data,
-    players: [], // brand new team, no roster yet
+    players: [], 
   }
 }
 
@@ -262,12 +262,9 @@ export async function createLiveGame(name, selectedTeams){
 
   }
 
-  export async function endLiveGame(liveGameId, teams) {
+export async function endLiveGame(liveGameId, teams) {
   if (!liveGameId) throw new Error('No active game to end.')
 
-  // liveGameId is live_games.id — look up the real games.id it belongs
-  // to, since both `results.game_id` and `games.id` point at the games
-  // table, not live_games.
   const { data: liveGameRow, error: lookupError } = await supabase
     .from('live_games')
     .select('game_id')
@@ -284,11 +281,17 @@ export async function createLiveGame(name, selectedTeams){
   }))
 
   if (rows.length > 0) {
-    const { error: resultsError } = await supabase
-      .from('results')
-      .insert(rows)
-    if (resultsError) throw resultsError
+   const { error: resultsError } = await supabase
+  .from('results')
+  .upsert(rows, { onConflict: 'game_id,team_id' })
+  if (resultsError) throw resultsError
   }
+
+  const { error: statusError } = await supabase
+    .from('live_games')
+    .update({ status: 'completed' })
+    .eq('id', liveGameId)
+  if (statusError) throw statusError
 
   const { error: gameError } = await supabase
     .from('games')
@@ -297,4 +300,64 @@ export async function createLiveGame(name, selectedTeams){
   if (gameError) throw gameError
 
   return { id: gameId }
+}
+export async function deleteLiveGame(liveGameId){
+    if(!liveGameId) throw new Error('No active game to delete. ')
+
+      const {data: liveGameRow, error: lookupError} = await supabase
+          .from('live_games')
+          .select('game_id')
+          .eq('id', liveGameId)
+          .single()
+          if(lookupError) throw lookupError
+          
+    const { error: teamsError } = await supabase
+    .from('live_game_teams')
+    .delete()
+    .eq('live_game_id', liveGameId)
+  if (teamsError) throw teamsError
+
+   const { error: liveGameError } = await supabase
+    .from('live_games')
+    .delete()
+    .eq('id', liveGameId)
+  if (liveGameError) throw liveGameError
+
+    const { error: gameError } = await supabase
+    .from('games')
+    .delete()
+    .eq('id', liveGameRow.game_id)
+  if (gameError) throw gameError
+
+  return { id: liveGameId }
+
+
+}
+
+export async function deleteTeam(teamId) {
+  const { error: playersError } = await supabase
+    .from('players')
+    .delete()
+    .eq('team_id', teamId)
+  if (playersError) throw playersError
+
+  const { error: liveGameTeamsError } = await supabase
+    .from('live_game_teams')
+    .delete()
+    .eq('team_id', teamId)
+  if (liveGameTeamsError) throw liveGameTeamsError
+
+  const { error: resultsError } = await supabase
+    .from('results')
+    .delete()
+    .eq('team_id', teamId)
+  if (resultsError) throw resultsError
+
+  const { error: teamError } = await supabase
+    .from('teams')
+    .delete()
+    .eq('id', teamId)
+  if (teamError) throw teamError
+
+  return { id: teamId }
 }

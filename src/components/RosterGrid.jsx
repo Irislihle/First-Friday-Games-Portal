@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react'
 
 const COLOR_PRESETS = ['#ED1940', '#a8b9c5', '#202020', '#00B8DD', '#F59B32', '#6B3FA1']
 
-export default function RosterGrid({ rosters, canManage = false, onTeamAdded }) {
+export default function RosterGrid({ rosters, canManage = false, onTeamAdded, onTeamDeleted }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [name, setName] = useState('')
   const [color, setColor] = useState(COLOR_PRESETS[0])
@@ -55,7 +55,7 @@ export default function RosterGrid({ rosters, canManage = false, onTeamAdded }) 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ">
         {rosters.map((team) => (
-          <RosterCard key={team.id} team={team} canManage={canManage} />
+          <RosterCard key={team.id} team={team} canManage={canManage} onTeamDeleted={onTeamDeleted} />
         ))}
       </div>
 

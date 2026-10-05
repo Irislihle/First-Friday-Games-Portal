@@ -38,10 +38,10 @@ function DashboardPreview() {
     <DashboardShell>
       <StatStrip stats={data.stats} />
       <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-5 items-start">
-        <ResultsChart data={data.chartData} />
+        <ResultsChart data={data.chartData} teams={data.rosters} />
         <div>
           <Leaderboard entries={data.leaderboard} />
-          {/* canManage defaults to false in preview */}
+        
           <LiveGame teams={data.rosters} game={data.liveGame} canManage={false} />
         </div>
       </div>
@@ -117,19 +117,23 @@ function Dashboard({ onLogout, canManage, userName }) {
     setData((prev) => ({ ...prev, rosters: [...prev.rosters, newTeam] }))
   }
 
+  function handleTeamDeleted(teamId) {
+  setData((prev) => ({ ...prev, rosters: prev.rosters.filter((t) => t.id !== teamId) }))
+}
+
   if (loading) return <LoadingScreen />
 
   return (
     <DashboardShell onLogout={onLogout} userName={userName}>
       <StatStrip stats={data.stats} />
       <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-5 items-start">
-        <ResultsChart data={data.chartData} />
+        <ResultsChart data={data.chartData} teams={data.rosters} />
         <div>
           <Leaderboard entries={data.leaderboard} />
           <LiveGame teams={data.rosters} game={data.liveGame} canManage={canManage} onGameCreated={refetch}/>
         </div>
       </div>
-      <RosterGrid rosters={data.rosters} canManage={canManage} />
+      <RosterGrid rosters={data.rosters} canManage={canManage} onTeamAdded={handleTeamAdded} onTeamDeleted={handleTeamDeleted}/>
     </DashboardShell>
   )
 }
