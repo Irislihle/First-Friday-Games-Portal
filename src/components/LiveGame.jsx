@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
+import ConfirmModal from './ConfirmModal'
 import { setTeamPoints, createLiveGame, endLiveGame, deleteLiveGame } from '../services/api'
 import { Pencil, Plus } from 'lucide-react'
 
@@ -12,25 +13,34 @@ export default function LiveGame({
   const [liveGame, setLiveGame] = useState(
     game ? { ...game, teams: game.teams ?? [] } : null
   )
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Score modal
   const [saving, setSaving] = useState(false)
   const [modalTeam, setModalTeam] = useState(null)
   const [pointsInput, setPointsInput] = useState('1')
-  const [isEditing, setIsEditing] = useState(false)
   const [scoreMode, setScoreMode] = useState('add')
-  const [ending, setEnding] = useState(false)
 
+  // Create game modal
   const [createOpen, setCreateOpen] = useState(false)
   const [newGameName, setNewGameName] = useState('')
   const [selectedTeamIds, setSelectedTeamIds] = useState([])
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
+
+  // End / delete game (confirm modals)
+  const [endOpen, setEndOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [ending, setEnding] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     setLiveGame(game ? { ...game, teams: game.teams ?? [] } : null)
   }, [game])
 
   function openCreateModal() {
+    if (liveGame) return
     setNewGameName('')
     setSelectedTeamIds(rosterTeams.map((t) => t.id))
     setCreateError('')
@@ -69,12 +79,16 @@ export default function LiveGame({
     setPointsInput('1')
   }
 
+  function currentPointsFor(team) {
+    // Read from live state, not the snapshot stored when the modal opened.
+    const current = liveGame?.teams.find((t) => t.id === team.id)
+    return current?.points ?? team.points ?? 0
+  }
+
   function switchScoreMode(mode) {
     setScoreMode(mode)
     if (mode === 'set' && modalTeam) {
-      // Read current points from live state, not the stale modal snapshot.
-      const current = liveGame?.teams.find((t) => t.id === modalTeam.id)
-      setPointsInput(String(current?.points ?? modalTeam.points ?? 0))
+      setPointsInput(String(currentPointsFor(modalTeam)))
     } else {
       setPointsInput('1')
     }
@@ -87,7 +101,8 @@ export default function LiveGame({
     const value = Number(pointsInput)
     if (Number.isNaN(value)) return
 
-    const nextPoints = scoreMode === 'add' ? modalTeam.points + value : value
+    const nextPoints =
+      scoreMode === 'add' ? currentPointsFor(modalTeam) + value : value
     if (nextPoints < 0) return
 
     setSaving(true)
@@ -107,43 +122,39 @@ export default function LiveGame({
     }
   }
 
-  async function handleEndGame() {
+  // Runs only when "End game" is confirmed inside the modal.
+  async function handleConfirmEndGame() {
     if (!liveGame) return
-    const confirmed = window.confirm(
-      `End "${liveGame.name}" and save these scores to the season standings? This can't be undone.`
-    )
-    if (!confirmed) return
-
     setEnding(true)
+    setActionError('')
     try {
       await endLiveGame(liveGame.id, liveGame.teams)
       setLiveGame(null)
       setIsEditing(false)
+      setEndOpen(false)
       onGameCreated?.()
     } catch (err) {
       console.error('endLiveGame failed:', err)
-      alert('Could not end the game — check the console for details.')
+      setActionError(err.message || 'Could not end the game.')
     } finally {
       setEnding(false)
     }
   }
 
-  async function handleDeleteGame() {
+  // Runs only when "Delete game" is confirmed inside the modal.
+  async function handleConfirmDeleteGame() {
     if (!liveGame) return
-    const confirmed = window.confirm(
-      `Delete "${liveGame.name}" entirely? This discards all current scores — nothing gets saved to the season standings. Use "End game" instead if you want to keep these scores.`
-    )
-    if (!confirmed) return
-
     setDeleting(true)
+    setActionError('')
     try {
       await deleteLiveGame(liveGame.id)
       setLiveGame(null)
       setIsEditing(false)
+      setDeleteOpen(false)
       onGameCreated?.()
     } catch (err) {
       console.error('deleteLiveGame failed:', err)
-      alert('Could not delete the game — check the console for details.')
+      setActionError(err.message || 'Could not delete the game.')
     } finally {
       setDeleting(false)
     }
@@ -163,14 +174,16 @@ export default function LiveGame({
 
           {canManage && (
             <>
-              <button
-                onClick={openCreateModal}
-                aria-label="Start a new game"
-                title="Start a new game"
-                className="w-7 h-7 flex items-center justify-center rounded-md text-[#9FB2C0] hover:bg-navy-soft hover:text-white transition-colors"
-              >
-                <Plus size={14} />
-              </button>
+              {!liveGame && (
+                <button
+                  onClick={openCreateModal}
+                  aria-label="Start a new game"
+                  title="Start a new game"
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-[#9FB2C0] hover:bg-navy-soft hover:text-white transition-colors"
+                >
+                  <Plus size={14} />
+                </button>
+              )}
 
               {liveGame && (
                 <>
@@ -187,23 +200,33 @@ export default function LiveGame({
                   >
                     <Pencil size={14} />
                   </button>
+
+                  {/* Opens the confirmation modal — does NOT end the game itself. */}
                   <button
-                    onClick={handleEndGame}
+                    onClick={() => {
+                      setActionError('')
+                      setEndOpen(true)
+                    }}
                     disabled={ending}
                     aria-label="End current game"
                     title="End current game and save results"
                     className="text-[11px] font-bold text-[#9FB2C0] hover:text-red disabled:opacity-50 transition-colors px-1.5"
                   >
-                    {ending ? 'Ending...' : 'End game'}
+                    End game
                   </button>
+
+                  {/* Opens the confirmation modal — does NOT delete the game itself. */}
                   <button
-                    onClick={handleDeleteGame}
+                    onClick={() => {
+                      setActionError('')
+                      setDeleteOpen(true)
+                    }}
                     disabled={deleting}
                     aria-label="Delete current game"
                     title="Delete current game without saving results"
                     className="text-[11px] font-bold text-[#9FB2C0] hover:text-red disabled:opacity-50 transition-colors px-1.5"
                   >
-                    {deleting ? 'Deleting...' : 'Delete'}
+                    Delete
                   </button>
                 </>
               )}
@@ -264,6 +287,7 @@ export default function LiveGame({
         </>
       )}
 
+      {/* Add / set score modal */}
       {canManage && (
         <Modal
           isOpen={!!modalTeam}
@@ -328,6 +352,7 @@ export default function LiveGame({
         </Modal>
       )}
 
+      {/* Create game modal */}
       {canManage && (
         <Modal
           isOpen={createOpen}
@@ -344,7 +369,7 @@ export default function LiveGame({
               value={newGameName}
               onChange={(e) => setNewGameName(e.target.value)}
               placeholder="e.g. Maths Quiz"
-              className="w-full border border-line rounded-lg px-3 py-2 text-[13px] text-[#111212] mb-4 focus:outline-none focus:border-red"
+              className="w-full border border-line rounded-lg px-3 py-2 text-[13px] text-[#091f2f] mb-4 focus:outline-none focus:border-red"
             />
 
             <label className="block text-[12px] font-semibold text-muted mb-1.5">
@@ -400,6 +425,32 @@ export default function LiveGame({
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* End / delete confirmation modals */}
+      {canManage && liveGame && (
+        <>
+          <ConfirmModal
+            isOpen={endOpen}
+            onClose={() => setEndOpen(false)}
+            onConfirm={handleConfirmEndGame}
+            title="End this game?"
+            message={`End "${liveGame.name}" and save these scores to the season standings? This can't be undone.`}
+            confirmLabel="End game"
+            loading={ending}
+            error={actionError}
+          />
+          <ConfirmModal
+            isOpen={deleteOpen}
+            onClose={() => setDeleteOpen(false)}
+            onConfirm={handleConfirmDeleteGame}
+            title="Delete this game?"
+            message={`Delete "${liveGame.name}" entirely? All current scores are discarded and nothing is saved to the season standings. Use "End game" instead if you want to keep them.`}
+            confirmLabel="Delete game"
+            loading={deleting}
+            error={actionError}
+          />
+        </>
       )}
     </div>
   )

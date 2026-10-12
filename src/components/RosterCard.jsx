@@ -1,20 +1,31 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
+import ConfirmModal from './ConfirmModal'
 import { addPlayer, updatePlayer, deletePlayer, deleteTeam } from '../services/api'
 import { Pencil, Trash2 } from 'lucide-react'
 
 export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
   const [players, setPlayers] = useState(team.players ?? [])
-  const [deletingTeam, setDeletingTeam] = useState(false)
+
+  // Add player
   const [adding, setAdding] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [name, setName] = useState('')
 
+  // Edit player
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
-  const [deletingId, setDeletingId] = useState(null)
+  // Delete player (confirm modal)
+  const [playerToDelete, setPlayerToDelete] = useState(null)
+  const [deletingPlayerId, setDeletingPlayerId] = useState(null)
+  const [deletePlayerError, setDeletePlayerError] = useState('')
+
+  // Delete team (confirm modal)
+  const [deleteTeamOpen, setDeleteTeamOpen] = useState(false)
+  const [deletingTeam, setDeletingTeam] = useState(false)
+  const [deleteTeamError, setDeleteTeamError] = useState('')
 
   useEffect(() => {
     setPlayers(team.players ?? [])
@@ -65,31 +76,31 @@ export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
     }
   }
 
-  async function handleDelete(player) {
-    const confirmed = window.confirm(`Remove ${player.name} from ${team.name}?`)
-    if (!confirmed) return
-    setDeletingId(player.id)
+  async function handleConfirmDeletePlayer() {
+    if (!playerToDelete) return
+    setDeletingPlayerId(playerToDelete.id)
+    setDeletePlayerError('')
     try {
-      await deletePlayer(team.id, player.id)
-      setPlayers((prev) => prev.filter((p) => p.id !== player.id))
+      await deletePlayer(team.id, playerToDelete.id)
+      setPlayers((prev) => prev.filter((p) => p.id !== playerToDelete.id))
+      setPlayerToDelete(null)
+    } catch (err) {
+      console.error('deletePlayer failed:', err)
+      setDeletePlayerError(err.message || 'Could not remove the player.')
     } finally {
-      setDeletingId(null)
+      setDeletingPlayerId(null)
     }
   }
 
   async function handleDeleteTeam() {
-    const confirmed = window.confirm(
-      `Delete ${team.name} entirely? This removes all its players and its past results from the season standings — cannot be undone.`
-    )
-    if (!confirmed) return
-
     setDeletingTeam(true)
+    setDeleteTeamError('')
     try {
       await deleteTeam(team.id)
       onTeamDeleted?.(team.id)
     } catch (err) {
       console.error('deleteTeam failed:', err)
-      alert('Could not delete the team — check the console for details.')
+      setDeleteTeamError(err.message || 'Could not delete the team.')
       setDeletingTeam(false)
     }
   }
@@ -110,7 +121,10 @@ export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
           </span>
           {canManage && (
             <button
-              onClick={handleDeleteTeam}
+              onClick={() => {
+                setDeleteTeamError('')
+                setDeleteTeamOpen(true)
+              }}
               disabled={deletingTeam}
               aria-label={`Delete ${team.name}`}
               title="Delete team"
@@ -139,8 +153,11 @@ export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
                   <Pencil size={13} />
                 </button>
                 <button
-                  onClick={() => handleDelete(p)}
-                  disabled={deletingId === p.id}
+                  onClick={() => {
+                    setDeletePlayerError('')
+                    setPlayerToDelete(p)
+                  }}
+                  disabled={deletingPlayerId === p.id}
                   aria-label={`Remove ${p.name}`}
                   className="text-faint hover:text-red p-1 rounded transition-colors disabled:opacity-50"
                 >
@@ -176,7 +193,7 @@ export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
             autoComplete="off"
             onChange={(e) => setName(e.target.value)}
             placeholder="Player name"
-            className="w-full border border-line rounded-lg px-3 py-2 text-[13px] mb-4 focus:outline-none focus:border-red"
+            className="w-full border border-line text-[#091f2f] rounded-lg px-3 py-2 text-[13px] mb-4 focus:outline-none focus:border-red"
           />
           <div className="flex gap-2 justify-end">
             <button
@@ -211,7 +228,7 @@ export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
             name="editPlayerName"
             autoComplete="off"
             onChange={(e) => setEditName(e.target.value)}
-            className="w-full border border-line rounded-lg px-3 py-2 text-[13px] mb-4 focus:outline-none focus:border-red"
+            className="w-full border border-line text-[#091f2f] rounded-lg px-3 py-2 text-[13px] mb-4 focus:outline-none focus:border-red"
           />
           <div className="flex gap-2 justify-end">
             <button
@@ -231,6 +248,34 @@ export default function RosterCard({ team, canManage = false, onTeamDeleted }) {
           </div>
         </form>
       </Modal>
+
+      {canManage && (
+        <>
+          {/* Remove player confirmation */}
+          <ConfirmModal
+            isOpen={!!playerToDelete}
+            onClose={() => setPlayerToDelete(null)}
+            onConfirm={handleConfirmDeletePlayer}
+            title="Remove player?"
+            message={`Remove ${playerToDelete?.name ?? ''} from ${team.name}? This can't be undone.`}
+            confirmLabel="Remove player"
+            loading={deletingPlayerId !== null}
+            error={deletePlayerError}
+          />
+
+          {/* Delete team confirmation */}
+          <ConfirmModal
+            isOpen={deleteTeamOpen}
+            onClose={() => setDeleteTeamOpen(false)}
+            onConfirm={handleDeleteTeam}
+            title={`Delete ${team.name}?`}
+            message={`This removes ${team.name}, all of its players, and its past results from the season standings. This can't be undone.`}
+            confirmLabel="Delete team"
+            loading={deletingTeam}
+            error={deleteTeamError}
+          />
+        </>
+      )}
     </div>
   )
 }
